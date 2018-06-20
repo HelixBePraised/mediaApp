@@ -1,0 +1,9 @@
+<table border="1px solid black">
+  {{ range $key, $value := .MovieTitleAndSource}}
+    <tr>
+      <td>
+        <a href="{{ $value }}">{{ $key }}</a>
+      </td>
+    </tr>
+  {{ end}}
+</table>
