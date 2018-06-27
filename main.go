@@ -10,12 +10,15 @@ import (
 )
 
 const (
+	mediaDirectory  = "./media/"
 	moviesDirectory = "./media/movies/"
+	showsDirectory  = "./media/shows/"
 )
 
 type Page struct {
 	Title               string
-	MovieTitleAndSource map[string]string
+	MediaTitleAndSource map[string]string
+	MediaSrc            string
 }
 
 var tmpl *template.Template
@@ -25,51 +28,75 @@ func init() {
 }
 
 func main() {
-	moviesFileServer := http.FileServer(http.Dir(moviesDirectory))
 	http.HandleFunc("/", index)
 	http.HandleFunc("/movies/", movieIndex)
-	http.Handle("/movies/files/", moviesFileServer)
+	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(mediaDirectory))))
+	http.HandleFunc("/viewmovie/", movieViewerHandler)
+	http.HandleFunc("/shows", showsIndex)
 	http.ListenAndServe(":8080", nil)
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-
 	p := Page{
 		Title: "Home",
 	}
 
-	err := tmpl.ExecuteTemplate(w, "header", p)
+	err := tmpl.ExecuteTemplate(w, "home.gohtml", p)
 	check(err, w)
 
-	err = tmpl.ExecuteTemplate(w, "home.gohtml", nil)
-	check(err, w)
-
-	err = tmpl.ExecuteTemplate(w, "footer", nil)
-	check(err, w)
 }
 
 // /movies handler
 func movieIndex(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-type", "text/html")
 
-	movMap := getMovieInformation(w)
+	movMap := getMediaInformation(w, moviesDirectory)
+
 	p := Page{
 		Title:               "Movies",
-		MovieTitleAndSource: movMap,
+		MediaTitleAndSource: movMap,
 	}
 
-	err := tmpl.ExecuteTemplate(w, "header", p)
-	check(err, w)
-
-	err = tmpl.ExecuteTemplate(w, "movieIndex.gohtml", p)
-	check(err, w)
-
-	err = tmpl.ExecuteTemplate(w, "footer", nil)
+	err := tmpl.ExecuteTemplate(w, "movieIndex.gohtml", p)
 	check(err, w)
 
 }
 
+func showsIndex(w http.ResponseWriter, req *http.Request) {
+
+	seasonInfo := getMediaInformation(w, showsDirectory)
+
+	p := Page{
+		Title:               "Shows",
+		MediaTitleAndSource: seasonInfo,
+	}
+
+	err := tmpl.ExecuteTemplate(w, "movieIndex.gohtml", p)
+	check(err, w)
+}
+
+func movieViewerHandler(w http.ResponseWriter, req *http.Request) {
+	url := req.URL.Path
+
+	var title string
+	title = strings.TrimSuffix(url, filepath.Ext(url))
+	title = strings.Replace(title, "/movies/", "/files/", -1)
+	title = strings.Replace(title, filepath.Ext(title), "", -1)
+	title = strings.Replace(title, "/viewmovie/", "", -1)
+	url = strings.Replace(url, "/viewmovie/", "/files/", -1)
+
+	url = "http://localhost:8080" + url
+
+	p := Page{
+		Title:    title,
+		MediaSrc: url,
+	}
+
+	err := tmpl.ExecuteTemplate(w, "viewer.gohtml", p)
+	check(err, w)
+
+}
+
+//Fine for now, possibly want to do more with errors
 func check(err error, w http.ResponseWriter) {
 	if err != nil {
 		fmt.Println(err)
@@ -77,17 +104,12 @@ func check(err error, w http.ResponseWriter) {
 	}
 }
 
-func getMovieInformation(w http.ResponseWriter) map[string]string {
+func getMediaInformation(w http.ResponseWriter, path string) map[string]string {
 	m := make(map[string]string)
 
-	err := filepath.Walk(moviesDirectory, func(path string, info os.FileInfo, err error) (er error) {
-		if !info.IsDir() {
-			src := info.Name()
-			name := strings.TrimSuffix(src, filepath.Ext(src))
-			fmt.Println(src)
-			src = "/movies/files/" + src
-			m[name] = src
-		}
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) (er error) {
+		name := info.Name()
+		m[name] = path + name
 		return nil
 	})
 

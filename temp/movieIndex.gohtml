@@ -1,5 +1,6 @@
+{{ template "header" .Title}}
 <table border="1px solid black">
-  {{ range $key, $value := .MovieTitleAndSource}}
+  {{ range $key, $value := .MediaTitleAndSource}}
     <tr>
       <td>
         <a href="{{ $value }}">{{ $key }}</a>
@@ -7,3 +8,4 @@
     </tr>
   {{ end}}
 </table>
+{{ template "footer" }}
