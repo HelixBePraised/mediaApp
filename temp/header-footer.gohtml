@@ -2,10 +2,24 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>JAMA | {{$.Title}}</title>
+    <title>JAMA | {{.}}</title>
     <link rel="stylesheet" href="/static/main.css">
   </head>
   <body>
+  <nav id="navbar">
+    <div id="logo">LOGO</div>
+    <ul>
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    <li>
+                        <a href="/movies">Movies</a>
+                    </li>
+                    <li>
+                        <a href="/shows">Shows</a>
+                    </li>
+                </ul>
+            </nav>
 {{end}}
 
 {{define "footer"}}

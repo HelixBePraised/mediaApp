@@ -3,40 +3,73 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
+
+	"os"
+
+	"github.com/gorilla/mux"
 )
 
 const (
-	mediaDirectory  = "./media/"
-	moviesDirectory = "./media/movies/"
-	showsDirectory  = "./media/shows/"
+	mediaDirectory  = "./media"
+	moviesDirectory = "./media/movies/."
+	//showsDirectory  = "./media/shows/"
 )
 
+var movies = map[string]string{}
+var shows = map[string]map[string]map[string]string{}
+
 type Page struct {
-	Title               string
-	MediaTitleAndSource map[string]string
-	MediaSrc            string
+	Title             string
+	MediaTitleAndLink map[string]string
+	MediaSrc          string
 }
 
 var tmpl *template.Template
 
 func init() {
+	fmt.Print("[+] Parsing templates...")
 	tmpl = template.Must(template.ParseGlob("./temp/*.gohtml"))
+	fmt.Print(" Done\n")
+	fmt.Print("[+] Gathering Movie Map...")
+	movies = GetMediaInformation(moviesDirectory)
+	fmt.Print(" Done\n")
+	fmt.Print("[+] Gathering Show Map...")
+	GetShowInfo()
+	fmt.Print(" Done\n")
 }
 
 func main() {
-	http.HandleFunc("/", index)
-	http.HandleFunc("/movies/", movieIndex)
-	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(mediaDirectory))))
-	http.HandleFunc("/viewmovie/", movieViewerHandler)
-	http.HandleFunc("/shows", showsIndex)
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("[+] Serving at localhost:8080")
+	r := mux.NewRouter()
+
+	r.HandleFunc("/shows", showsHandler)
+	r.HandleFunc("/shows/", showsHandler)
+	r.HandleFunc("/shows/{show}", showsHandler)
+	r.HandleFunc("/shows/{show}/", showsHandler)
+	r.HandleFunc("/shows/{show}/{season}", showsHandler)
+	r.HandleFunc("/shows/{show}/{season}/", showsHandler)
+	r.HandleFunc("/shows/{show}/{season}/{episode}", movieViewerHandler)
+	r.HandleFunc("/shows/{show}/{season}/{episode}/", movieViewerHandler)
+
+	r.HandleFunc("/movies", movieHandler)
+	r.HandleFunc("/movies/", movieHandler)
+
+	//http.Handle("/files", http.StripPrefix("/files", http.FileServer(http.Dir(mediaDirectory))))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
+	r.PathPrefix("/files/").Handler(http.StripPrefix("/files/", http.FileServer(http.Dir(mediaDirectory))))
+	r.HandleFunc("/view/{movieOrShow}/{season}/{episode}", movieViewerHandler)
+	r.HandleFunc("/view/{movieOrShow}", movieViewerHandler)
+	r.HandleFunc("/", index)
+	http.ListenAndServe(":8080", r)
+
 }
 
 func index(w http.ResponseWriter, req *http.Request) {
+	_ = req.URL.Path
 	p := Page{
 		Title: "Home",
 	}
@@ -46,14 +79,10 @@ func index(w http.ResponseWriter, req *http.Request) {
 
 }
 
-// /movies handler
-func movieIndex(w http.ResponseWriter, req *http.Request) {
-
-	movMap := getMediaInformation(w, moviesDirectory)
-
+func movieHandler(w http.ResponseWriter, req *http.Request) {
 	p := Page{
-		Title:               "Movies",
-		MediaTitleAndSource: movMap,
+		Title:             "Movies",
+		MediaTitleAndLink: movies,
 	}
 
 	err := tmpl.ExecuteTemplate(w, "movieIndex.gohtml", p)
@@ -61,13 +90,47 @@ func movieIndex(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func showsIndex(w http.ResponseWriter, req *http.Request) {
+func showsHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	//sortSlice := []string{}
+	var p Page
 
-	seasonInfo := getMediaInformation(w, showsDirectory)
+	if vars["show"] == "" {
+		var m = map[string]string{}
 
-	p := Page{
-		Title:               "Shows",
-		MediaTitleAndSource: seasonInfo,
+		for show := range shows {
+			m[show] = "/shows/" + show
+		}
+		p = Page{
+			Title:             "Shows",
+			MediaTitleAndLink: m,
+		}
+
+	} else if vars["season"] == "" {
+		var m = map[string]string{}
+
+		for season := range shows[vars["show"]] {
+			if season == vars["show"] {
+				continue
+			}
+			m[season] = "/shows/" + vars["show"] + "/" + season
+		}
+
+		p = Page{
+			Title:             "Shows",
+			MediaTitleAndLink: m,
+		}
+	} else if vars["episode"] == "" {
+		var m = map[string]string{}
+
+		for episode := range shows[vars["show"]][vars["season"]] {
+			m[episode] = "/view/" + vars["show"] + "/" + vars["season"] + "/" + episode
+		}
+
+		p = Page{
+			Title:             "Shows",
+			MediaTitleAndLink: m,
+		}
 	}
 
 	err := tmpl.ExecuteTemplate(w, "movieIndex.gohtml", p)
@@ -75,16 +138,16 @@ func showsIndex(w http.ResponseWriter, req *http.Request) {
 }
 
 func movieViewerHandler(w http.ResponseWriter, req *http.Request) {
-	url := req.URL.Path
+	var url, title string
+	vars := mux.Vars(req)
 
-	var title string
-	title = strings.TrimSuffix(url, filepath.Ext(url))
-	title = strings.Replace(title, "/movies/", "/files/", -1)
-	title = strings.Replace(title, filepath.Ext(title), "", -1)
-	title = strings.Replace(title, "/viewmovie/", "", -1)
-	url = strings.Replace(url, "/viewmovie/", "/files/", -1)
-
-	url = "http://localhost:8080" + url
+	if vars["season"] == "" {
+		url = "/files/movies/" + vars["movieOrShow"]
+		title = "Movie"
+	} else {
+		url = "/files/shows/" + vars["movieOrShow"] + "/" + vars["season"] + "/" + vars["episode"]
+		title = "Show"
+	}
 
 	p := Page{
 		Title:    title,
@@ -104,16 +167,57 @@ func check(err error, w http.ResponseWriter) {
 	}
 }
 
-func getMediaInformation(w http.ResponseWriter, path string) map[string]string {
+func GetMediaInformation(path string) map[string]string {
 	m := make(map[string]string)
 
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) (er error) {
-		name := info.Name()
-		m[name] = path + name
-		return nil
-	})
+	files, _ := ioutil.ReadDir(path)
 
-	check(err, w)
+	for _, file := range files {
+		m[file.Name()] = "/view/" + file.Name()
+	}
+
+	// err := filepath.Walk(path, func(walkPath string, info os.FileInfo, err error) error {
+	// 	if info.IsDir() {
+	// 		name := info.Name()
+	// 		m[name] = walkPath
+	// 	}
+	//
+	// 	return nil
+	// })
+
+	// if err != nil {
+	// 	fmt.Printf("%s", err)
+	// }
 
 	return m
+}
+func GetShowInfo() {
+	files, _ := ioutil.ReadDir("./media/shows/")
+
+	for _, dir := range files {
+
+		shows[dir.Name()] = map[string]map[string]string{}
+
+		var seasonName string
+
+		_ = filepath.Walk("./media/shows/"+dir.Name(), func(path string, file os.FileInfo, err error) error {
+
+			if err != nil {
+				fmt.Printf("Error: %s\n0", err)
+				return nil
+			}
+
+			if file.IsDir() {
+				seasonName = file.Name()
+				shows[dir.Name()][seasonName] = map[string]string{}
+
+			} else {
+				title := file.Name()
+				title = strings.Replace(title, filepath.Ext(file.Name()), "", -1)
+				shows[dir.Name()][seasonName][file.Name()] = path
+			}
+
+			return nil
+		})
+	}
 }

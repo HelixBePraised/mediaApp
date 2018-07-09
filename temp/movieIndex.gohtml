@@ -1,6 +1,6 @@
 {{ template "header" .Title}}
 <table border="1px solid black">
-  {{ range $key, $value := .MediaTitleAndSource}}
+  {{ range $key, $value := .MediaTitleAndLink}}
     <tr>
       <td>
         <a href="{{ $value }}">{{ $key }}</a>
