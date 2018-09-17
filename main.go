@@ -58,7 +58,6 @@ func main() {
 	r.HandleFunc("/movies", movieHandler)
 	r.HandleFunc("/movies/", movieHandler)
 
-	//http.Handle("/files", http.StripPrefix("/files", http.FileServer(http.Dir(mediaDirectory))))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static/"))))
 	r.PathPrefix("/files/").Handler(http.StripPrefix("/files/", http.FileServer(http.Dir(mediaDirectory))))
 	r.HandleFunc("/view/{movieOrShow}/{season}/{episode}", movieViewerHandler)
@@ -92,15 +91,15 @@ func movieHandler(w http.ResponseWriter, req *http.Request) {
 
 func showsHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	//sortSlice := []string{}
 	var p Page
-
+	var title string
 	if vars["show"] == "" {
 		var m = map[string]string{}
 
 		for show := range shows {
 			m[show] = "/shows/" + show
 		}
+
 		p = Page{
 			Title:             "Shows",
 			MediaTitleAndLink: m,
@@ -116,10 +115,13 @@ func showsHandler(w http.ResponseWriter, req *http.Request) {
 			m[season] = "/shows/" + vars["show"] + "/" + season
 		}
 
+		title = vars["show"]
+
 		p = Page{
-			Title:             "Shows",
+			Title:             title,
 			MediaTitleAndLink: m,
 		}
+
 	} else if vars["episode"] == "" {
 		var m = map[string]string{}
 
@@ -127,8 +129,10 @@ func showsHandler(w http.ResponseWriter, req *http.Request) {
 			m[episode] = "/view/" + vars["show"] + "/" + vars["season"] + "/" + episode
 		}
 
+		title = vars["show"] + " | " + vars["season"]
+
 		p = Page{
-			Title:             "Shows",
+			Title:             title,
 			MediaTitleAndLink: m,
 		}
 	}
@@ -143,10 +147,10 @@ func movieViewerHandler(w http.ResponseWriter, req *http.Request) {
 
 	if vars["season"] == "" {
 		url = "/files/movies/" + vars["movieOrShow"]
-		title = "Movie"
+		title = vars["movieOrShow"]
 	} else {
 		url = "/files/shows/" + vars["movieOrShow"] + "/" + vars["season"] + "/" + vars["episode"]
-		title = "Show"
+		title = vars["movieOrShow"]
 	}
 
 	p := Page{
