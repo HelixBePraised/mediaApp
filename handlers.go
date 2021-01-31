@@ -98,5 +98,4 @@ func movieViewerHandler(w http.ResponseWriter, req *http.Request) {
 
 	err := tmpl.ExecuteTemplate(w, "viewer.gohtml", p)
 	check(err, w)
-
 }

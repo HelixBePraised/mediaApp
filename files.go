@@ -32,6 +32,7 @@ func GetMediaInformation(path string) map[string]string {
 
 	return m
 }
+
 func GetShowInfo() {
 	files, _ := ioutil.ReadDir("./media/shows/")
 
