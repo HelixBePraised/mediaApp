@@ -1,11 +1,12 @@
-# JAMA MediaApp
-App used to view my movies and shows through the browser.
+# JAMA - Jackson's Awesome Media Application
+A lightweight(suckless) solution to view a library of videos.
 
-## Why I chose Golang
-I chose Golang because it's probably the language I know best besides PHP. It has a lot of cool quirks about it, and I haven't done a good project with anything besides stuff I learned in school.
+JAMA is a lightweight http application that serves the videos (basic file server), and a REST endpoint to easily provide an interface to create your own client.
 
-## To-do stuff
-*Add a depth level to the function that grabs the media from the folders.
-+ Style it to look better.
-+ Add QOL features. Ex. Next/Previous Button
-+ Implement a better video player than HTML5's
+## TODO:
+    1. [ ] Serve files
+    2. [ ] Create endpoint for media selection (TV/Movie/Other)
+    3. [ ] Create dmenu client for MPV
+
+## Why Golang?
+Golang is nice for this kind of project because it's fast, its standard library is awesome, and static linking executable should prove nice for deployment.
