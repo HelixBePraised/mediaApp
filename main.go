@@ -3,12 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
-	"path/filepath"
-	"strings"
-
-	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -64,5 +59,9 @@ func main() {
 	r.HandleFunc("/view/{movieOrShow}", movieViewerHandler)
 	r.HandleFunc("/", index)
 	http.ListenAndServe(":8080", r)
+
+}
+
+func check(e error, w http.ResponseWriter) {
 
 }
