@@ -6,11 +6,16 @@ import (
 )
 
 type fileSystemMock struct {
-	fileExistsMock func(string) bool
+	fileExistsMock      func(string) bool
+	pathIsDirectoryMock func(string) bool
 }
 
 func (fs fileSystemMock) FileExists(path string) bool {
 	return fs.fileExistsMock(path)
+}
+
+func (fs fileSystemMock) PathIsDirectory(path string) bool {
+	return fs.pathIsDirectoryMock(path)
 }
 
 func TestReadDirectory(t *testing.T) {
@@ -29,6 +34,15 @@ func TestReadDirectory(t *testing.T) {
 		want    []string
 		wantErr bool
 	}{
+		{
+			name: "fs is nil",
+			args: args{
+				fs:   nil,
+				path: "/somePath",
+			},
+			want:    nil,
+			wantErr: true,
+		},
 		{
 			name: "Missing Path",
 			args: args{
