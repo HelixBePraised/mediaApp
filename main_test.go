@@ -24,6 +24,15 @@ func TestReadDirectory(t *testing.T) {
 		return false
 	}
 
+	// Mock where fs finds the path
+	pathDoesExist := func(_ string) bool {
+		return true
+	}
+
+	pathIsNotDirectory := func(_ string) bool {
+		return false
+	}
+
 	type args struct {
 		fs   FileSystemInteractor
 		path string
@@ -48,6 +57,18 @@ func TestReadDirectory(t *testing.T) {
 			args: args{
 				fs:   fileSystemMock{fileExistsMock: pathDoesNotExist},
 				path: "/incorrectPath",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Path is not a directory",
+			args: args{
+				fs: fileSystemMock{
+					fileExistsMock:      pathDoesExist,
+					pathIsDirectoryMock: pathIsNotDirectory,
+				},
+				path: "/aFile.txt",
 			},
 			want:    nil,
 			wantErr: true,
