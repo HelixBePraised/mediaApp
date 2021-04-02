@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	// "path/filepath"
+	"io/fs"
 )
 
 func main() {
@@ -32,9 +34,11 @@ func (f FileSystem) PathIsDirectory(path string) bool {
 }
 
 // Read a directory and return all the filesnames in it
-func ReadDirectory(fs FileSystemInteractor, path string) ([]string, error) {
-	if fs == nil || !fs.FileExists(path) || !fs.PathIsDirectory(path) {
+func ReadDirectory(fsi FileSystemInteractor, path string) ([]fs.FileInfo, error) {
+	if fsi == nil || !fsi.FileExists(path) || !fsi.PathIsDirectory(path) {
 		return nil, fmt.Errorf("%s is not a valid path!", path)
 	}
-	return []string{}, nil
+
+	// Get the contents of the directory
+	return []fs.FileInfo{}, nil
 }

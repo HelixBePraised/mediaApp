@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/fs"
 	"reflect"
 	"testing"
 )
@@ -29,6 +30,7 @@ func TestReadDirectory(t *testing.T) {
 		return true
 	}
 
+	// Mock where the path is a file and not a directory
 	pathIsNotDirectory := func(_ string) bool {
 		return false
 	}
@@ -40,7 +42,7 @@ func TestReadDirectory(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    []string
+		want    []fs.FileInfo
 		wantErr bool
 	}{
 		{
