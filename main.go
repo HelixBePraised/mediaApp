@@ -46,7 +46,11 @@ func (f FileSystem) GenerateWalkFunc(files *[]fs.FileInfo) filepath.WalkFunc {
 
 // Read a directory and return all the filesnames in it
 func ReadDirectory(fsi FileSystemInteractor, path string) ([]fs.FileInfo, error) {
-	if fsi == nil || !fsi.FileExists(path) || !fsi.PathIsDirectory(path) {
+	if fsi == nil {
+		return nil, fmt.Errorf("FileSystemInteractor is nil!")
+	}
+
+	if !fsi.FileExists(path) || !fsi.PathIsDirectory(path) {
 		return nil, fmt.Errorf("%s is not a valid path!", path)
 	}
 
