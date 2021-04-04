@@ -6,47 +6,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
+
+	"git.jacksontaylor.xyz/jama/utils"
 )
-
-type fileSystemMock struct {
-	fileExistsMock       func(string) bool
-	pathIsDirectoryMock  func(string) bool
-	generateWalkFuncMock func(*[]fs.FileInfo) filepath.WalkFunc
-}
-
-func (fs fileSystemMock) FileExists(path string) bool {
-	return fs.fileExistsMock(path)
-}
-
-func (fs fileSystemMock) PathIsDirectory(path string) bool {
-	return fs.pathIsDirectoryMock(path)
-}
-
-func (fs fileSystemMock) GenerateWalkFunc(files *[]fs.FileInfo) filepath.WalkFunc {
-	return fs.generateWalkFuncMock(files)
-}
-
-type mockFileInfo struct{}
-
-func (m mockFileInfo) Name() string {
-	return "movie.mp4"
-}
-func (m mockFileInfo) Size() int64 {
-	return 1234
-}
-func (m mockFileInfo) Mode() fs.FileMode {
-	return fs.ModeAppend // This is a dummy value for now
-}
-func (m mockFileInfo) ModTime() time.Time {
-	return time.Now()
-}
-func (m mockFileInfo) IsDir() bool {
-	return false
-}
-func (m mockFileInfo) Sys() interface{} {
-	return 1
-}
 
 func TestReadDirectory(t *testing.T) {
 	// Mock where fs does not find a file
@@ -77,7 +39,7 @@ func TestReadDirectory(t *testing.T) {
 	}
 
 	walkFuncReturnsFiles := func(files *[]fs.FileInfo) filepath.WalkFunc {
-		*files = []fs.FileInfo{mockFileInfo{}}
+		*files = []fs.FileInfo{utils.MockFileInfo{}}
 		return func(_ string, _ fs.FileInfo, _ error) error {
 			return nil
 		}
@@ -105,7 +67,7 @@ func TestReadDirectory(t *testing.T) {
 		{
 			name: "Missing Path",
 			args: args{
-				fsi:  fileSystemMock{fileExistsMock: pathDoesNotExist},
+				fsi:  utils.FileSystemMock{FileExistsMock: pathDoesNotExist},
 				path: "/incorrectPath",
 			},
 			want:    nil,
@@ -114,9 +76,9 @@ func TestReadDirectory(t *testing.T) {
 		{
 			name: "Path is not a directory",
 			args: args{
-				fsi: fileSystemMock{
-					fileExistsMock:      pathDoesExist,
-					pathIsDirectoryMock: pathIsNotDirectory,
+				fsi: utils.FileSystemMock{
+					FileExistsMock:      pathDoesExist,
+					PathIsDirectoryMock: pathIsNotDirectory,
 				},
 				path: "/aFile.txt",
 			},
@@ -126,10 +88,10 @@ func TestReadDirectory(t *testing.T) {
 		{
 			name: "Walkfunc returns error",
 			args: args{
-				fsi: fileSystemMock{
-					fileExistsMock:       pathDoesExist,
-					pathIsDirectoryMock:  pathIsDirectory,
-					generateWalkFuncMock: walkFuncReturnError,
+				fsi: utils.FileSystemMock{
+					FileExistsMock:       pathDoesExist,
+					PathIsDirectoryMock:  pathIsDirectory,
+					GenerateWalkFuncMock: walkFuncReturnError,
 				},
 				path: "/somePath",
 			},
@@ -139,14 +101,14 @@ func TestReadDirectory(t *testing.T) {
 		{
 			name: "WalkFunc returns files",
 			args: args{
-				fsi: fileSystemMock{
-					fileExistsMock:       pathDoesExist,
-					pathIsDirectoryMock:  pathIsDirectory,
-					generateWalkFuncMock: walkFuncReturnsFiles,
+				fsi: utils.FileSystemMock{
+					FileExistsMock:       pathDoesExist,
+					PathIsDirectoryMock:  pathIsDirectory,
+					GenerateWalkFuncMock: walkFuncReturnsFiles,
 				},
 				path: "/somePath",
 			},
-			want:    []fs.FileInfo{mockFileInfo{}},
+			want:    []fs.FileInfo{utils.MockFileInfo{}},
 			wantErr: false,
 		},
 	}
